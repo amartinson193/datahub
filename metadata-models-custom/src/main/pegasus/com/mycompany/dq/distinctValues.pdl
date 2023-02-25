@@ -1,0 +1,15 @@
+namespace com.mycompany.dq
+
+@Aspect = {
+  "name": "distinctValues",
+  "autoRender": true,
+  "renderSpec": {
+    "displayType": "tabular", // or properties
+    "key": "distinct_key",
+    "displayName": "Distinct Values"
+  }
+}
+record distinctValues {
+  distinct_key: array[distinctColValues]
+}
+}

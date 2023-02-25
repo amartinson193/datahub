@@ -10,6 +10,7 @@ import threading
 import traceback
 import unittest.mock
 import uuid
+import traceback
 from typing import (
     Any,
     Callable,
@@ -56,6 +57,9 @@ from datahub.metadata.schema_classes import (
     PartitionSpecClass,
     QuantileClass,
     ValueFrequencyClass,
+    ChangeTypeClass,
+    GenericAspectClass,
+    MetadataChangeProposalClass,
 )
 from datahub.telemetry import stats, telemetry
 from datahub.utilities.perf_timer import PerfTimer
@@ -64,9 +68,16 @@ from datahub.utilities.sqlalchemy_query_combiner import (
     SQLAlchemyQueryCombiner,
     get_query_columns,
 )
+     
+import json
+from datahub.emitter.rest_emitter import DatahubRestEmitter
+import os
 
 assert MARKUPSAFE_PATCHED
-logger: logging.Logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger("my-logger")
+handler = logging.FileHandler('./_my_extensions/logging/checking.log')
+logger.addHandler(handler)
+# logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', filename=f'Users/andreasmartinson/repos/datahub/_my_extensions/logging/checking.log', level=logging.INFO)
 
 P = ParamSpec("P")
 
@@ -524,6 +535,101 @@ class _SingleDatasetProfiler(BasicDatasetProfilerBase):
                 f"{self.dataset_name}.{column}",
             )
 
+    @_run_with_query_combiner
+    def _get_dataset_column_distinct_values(
+        self, dataset_name: str, columns_profiling_queue: list
+    ) -> None:
+        if not self.config.include_field_distinct_values:
+            return
+
+        try:
+            # TODO do this without GE
+            self.dataset.set_config_value("interactive_evaluation", True)
+            
+            # Check for distinct values in ever larger increments
+            pct_dataset = [.10,.25,.5,1]
+            logger.info(f'MADE IT HERE')
+
+            distinct_value_col_list = []
+            for column_spec in columns_profiling_queue:
+                column = column_spec.column
+                nonnull_count = column_spec.nonnull_count
+                unique_count = column_spec.unique_count
+                if unique_count > 25:
+                    continue
+                for pct in pct_dataset:
+                    samples_to_check = round(nonnull_count * pct)
+                    logger.info(f'SAMPLE CHECK NUM {samples_to_check}')
+                    res = self.dataset.expect_column_values_to_be_in_set(
+                        column,
+                        [],
+                        result_format={
+                            "result_format": "SUMMARY",
+                            "partial_unexpected_count": samples_to_check,
+                        },
+                    ).result
+
+                    # Get the distinct values
+                    distinct_values = [*set(res["partial_unexpected_list"])]
+                    logger.info(f'HERE ARE DISTINCT VALUES {distinct_values}')
+                    if len(distinct_values) == unique_count:
+                        distinctValues = [str(v) for v in distinct_values]
+                        
+                        # Save the values
+                        aspect_values = {
+                                    "column": column,
+                                    "distinctValues": str(distinctValues)
+                                }
+                        distinct_value_col_list.append(aspect_values)
+                        # Exit loop if the distinct values are all captured 
+                        break
+                    
+            # Write values to DataHub
+            datahub_token = os.getenv("DATAHUB_TOKEN")
+            if distinct_value_col_list:
+                emit_list = {
+                            "distinct_key": distinct_value_col_list
+                        } 
+                emitter: DatahubRestEmitter = DatahubRestEmitter(gms_server="http://localhost:8080", token=datahub_token)
+                
+                dataset_urn = f"urn:li:dataset:(urn:li:dataPlatform:postgres,{dataset_name},PROD)"
+                mcp_raw: MetadataChangeProposalClass = MetadataChangeProposalClass(
+                    entityType="dataset",
+                    entityUrn=dataset_urn,
+                    changeType=ChangeTypeClass.UPSERT,
+                    aspectName="distinctValues",
+                    aspect=GenericAspectClass(
+                        contentType="application/json",
+                        value=json.dumps(emit_list).encode("utf-8"),
+                    ),
+                )
+
+                try:
+                    emitter.emit(mcp_raw)
+                    print("Successfully wrote to DataHub")
+                    logger.info(f'Successfully wrote to DataHub for dataset: {dataset_name} and column name: {column}')
+                except Exception as e:
+                    print("Failed to write to DataHub")
+                    logger.info(f'Failed to write to DataHub for dataset: {dataset_name} and column name: {column}')
+                    raise e
+
+
+
+        except Exception as e:
+            x = traceback.print_exc()
+            logger.debug(
+                f"Caught exception while attempting to get distinct values for column {column}. {e}"
+            )
+            logger.info(
+                f"Caught exception while attempting to get distinct values for column {column}. {e} {x}"
+            )
+
+            # logging.info(f"Caught exception while attempting to get distinct values for column {column}. {e}")
+            self.report.report_warning(
+                "Profiling - Unable to get column distinct values",
+                f"{self.dataset_name}.{column}",
+            )
+
     def generate_dataset_profile(  # noqa: C901 (complexity)
         self,
     ) -> DatasetProfileClass:
@@ -561,6 +667,8 @@ class _SingleDatasetProfiler(BasicDatasetProfilerBase):
 
         assert profile.rowCount is not None
         row_count: int = profile.rowCount
+        
+        self._get_dataset_column_distinct_values(self.dataset_name, columns_profiling_queue)
 
         for column_spec in columns_profiling_queue:
             column = column_spec.column
@@ -588,7 +696,6 @@ class _SingleDatasetProfiler(BasicDatasetProfilerBase):
                         column_profile.uniqueProportion = min(
                             1, unique_count / non_null_count
                         )
-
             self._get_dataset_column_sample_values(column_profile, column)
 
             if (

@@ -1,0 +1,19 @@
+Requirement already satisfied: pip in ./venv/lib/python3.9/site-packages (22.0.4)
+Collecting pip
+  Using cached pip-23.0.1-py3-none-any.whl (2.1 MB)
+Collecting wheel
+  Using cached wheel-0.38.4-py3-none-any.whl (36 kB)
+Requirement already satisfied: setuptools in ./venv/lib/python3.9/site-packages (58.1.0)
+Collecting setuptools
+  Downloading setuptools-67.3.3-py3-none-any.whl (1.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 5.3 MB/s eta 0:00:00
+Installing collected packages: wheel, setuptools, pip
+  Attempting uninstall: setuptools
+    Found existing installation: setuptools 58.1.0
+    Uninstalling setuptools-58.1.0:
+      Successfully uninstalled setuptools-58.1.0
+  Attempting uninstall: pip
+    Found existing installation: pip 22.0.4
+    Uninstalling pip-22.0.4:
+      Successfully uninstalled pip-22.0.4
+Successfully installed pip-23.0.1 setuptools-67.3.3 wheel-0.38.4
