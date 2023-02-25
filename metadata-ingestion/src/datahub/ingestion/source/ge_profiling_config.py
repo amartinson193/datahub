@@ -87,6 +87,10 @@ class GEProfilingConfig(ConfigModel):
         default=True,
         description="Whether to profile for the sample values for all columns.",
     )
+    include_field_distinct_values: bool = Field(
+        default=True,
+        description="Whether to profile for the distinct values for all columns.",
+    )
     field_sample_values_limit: int = Field(
         default=20,
         description="Upper limit for number of sample values to collect for all columns.",
@@ -174,6 +178,7 @@ class GEProfilingConfig(ConfigModel):
                 "include_field_distinct_value_frequencies",
                 "include_field_histogram",
                 "include_field_sample_values",
+                "include_field_distinct_values",
             ]
             for expensive_field_metric in expensive_field_level_metrics:
                 values.setdefault(expensive_field_metric, False)

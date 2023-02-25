@@ -1,0 +1,7 @@
+namespace com.mycompany.dq
+
+record distinctColValues {
+  column: string
+  distinctValues: string
+}
+	

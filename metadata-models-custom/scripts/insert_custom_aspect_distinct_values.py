@@ -8,24 +8,13 @@ from datahub.metadata.schema_classes import (
 )
 
 dq_aspect = {
-    "rules": [
+    "distinct_key": [
         {
-            "field": "my_event_data",
-            "isFieldLevel": True,
-            "type": "increasing",
-            "checkDefinition": "n/a",
-            "url": "https://github.com/datahub-project/datahub/blob/master/checks/nonNull.sql",
-        },
-        {
-            "field": "my_event_data",
-            "isFieldLevel": True,
-            "type": "increasing",
-            "checkDefinition": "n/a",
-            "url": "https://github.com/datahub-project/datahub/blob/master/checks/increasing.sql",
+            "column": "test_col1",
+            "distinctValues": str(["hi","bye","check","hello"])
         },
     ]
 }
-
 emitter: DatahubRestEmitter = DatahubRestEmitter(gms_server="http://localhost:8080", token='eyJhbGciOiJIUzI1NiJ9.eyJhY3RvclR5cGUiOiJVU0VSIiwiYWN0b3JJZCI6ImRhdGFodWIiLCJ0eXBlIjoiUEVSU09OQUwiLCJ2ZXJzaW9uIjoiMiIsImp0aSI6ImQ1NmFjNjM0LTk4ZDktNDMxOC04MjAyLTlhODAzMmE1OWJlMiIsInN1YiI6ImRhdGFodWIiLCJpc3MiOiJkYXRhaHViLW1ldGFkYXRhLXNlcnZpY2UifQ.SJNyRlMJR3Nkch-ZGsXWGYFkolTM1sCDhUibOxsdZ44')
 
 dataset_urn = "urn:li:dataset:(urn:li:dataPlatform:hive,logging_events,PROD)"
@@ -33,7 +22,7 @@ mcp_raw: MetadataChangeProposalClass = MetadataChangeProposalClass(
     entityType="dataset",
     entityUrn=dataset_urn,
     changeType=ChangeTypeClass.UPSERT,
-    aspectName="customDataQualityRules",
+    aspectName="distinctValues",
     aspect=GenericAspectClass(
         contentType="application/json",
         value=json.dumps(dq_aspect).encode("utf-8"),
