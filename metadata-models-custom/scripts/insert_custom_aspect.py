@@ -25,8 +25,8 @@ dq_aspect = {
         },
     ]
 }
-
-emitter: DatahubRestEmitter = DatahubRestEmitter(gms_server="http://localhost:8080", token='eyJhbGciOiJIUzI1NiJ9.eyJhY3RvclR5cGUiOiJVU0VSIiwiYWN0b3JJZCI6ImRhdGFodWIiLCJ0eXBlIjoiUEVSU09OQUwiLCJ2ZXJzaW9uIjoiMiIsImp0aSI6ImQ1NmFjNjM0LTk4ZDktNDMxOC04MjAyLTlhODAzMmE1OWJlMiIsInN1YiI6ImRhdGFodWIiLCJpc3MiOiJkYXRhaHViLW1ldGFkYXRhLXNlcnZpY2UifQ.SJNyRlMJR3Nkch-ZGsXWGYFkolTM1sCDhUibOxsdZ44')
+datahub_token = os.getenv("DATAHUB_TOKEN")
+emitter: DatahubRestEmitter = DatahubRestEmitter(gms_server="http://localhost:8080", token=datahub_token)
 
 dataset_urn = "urn:li:dataset:(urn:li:dataPlatform:hive,logging_events,PROD)"
 mcp_raw: MetadataChangeProposalClass = MetadataChangeProposalClass(
